@@ -10,3 +10,27 @@ export const AnalyticsBox = styled.div`
   display: flex;
   align-items: center;
 `
+
+export const PostMessageBox = styled.div`
+  width: fit-content;
+
+  margin:  auto;
+
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+
+  svg {
+    color: ${props => props.theme['gray-500']};
+  }
+
+  p {
+    text-align: center;
+    color: ${props => props.theme['gray-500']};
+  }
+
+  a {
+    font-weight: 700;
+    color: ${props => props.theme['green-500']};
+  }
+`

@@ -1,11 +1,13 @@
-import { Eye, Note, Users } from 'phosphor-react'
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Eye, Note, Scroll, Users } from 'phosphor-react'
 import { AnalyticsCard } from '../components/AnalyticsCard'
 import { useIs } from '../hooks'
 import { DefaultLayout } from '../layouts/DefaultLayout'
 import { api } from '../services/api'
-import { AnalyticsBox, HomeContainer } from '../styles/pages/home'
 import { withSSRAuth } from '../utils/withSSRAuth'
+
+import { HomeContainer, AnalyticsBox, PostMessageBox } from '../styles/pages/home'
+import Link from 'next/link'
 
 type Metrics = {
   blogUsersCount: number
@@ -15,19 +17,18 @@ type Metrics = {
 }
 
 export default function Home() {
-  const [metrics, setMetrics] = useState<Metrics>()
-
-  useEffect(() => {
-    api.get<Metrics>('/dashboard/metrics')
-     .then(res => setMetrics(res.data))
-  }, [])
-
   const userCanSeeMetrics = useIs({
     roles: [
       {
         name: 'admin'
       }
     ]
+  })
+
+  const { data: metrics } = useQuery(['metrics'], async () => {
+    if (userCanSeeMetrics) {
+      return api.get<Metrics>('/dashboard/metrics')
+    }
   })
 
   return (
@@ -37,21 +38,32 @@ export default function Home() {
           <AnalyticsBox>
             <AnalyticsCard>
               <Eye size={32} />
-              {metrics?.viewsCount} views
+              {metrics?.data.viewsCount} views
             </AnalyticsCard>
 
             <AnalyticsCard>
               <Users size={32} />
-              {metrics?.blogUsersCount} usuários do blog
+              {metrics?.data.blogUsersCount} usuários do blog
             </AnalyticsCard>
 
             <AnalyticsCard>
               <Note size={32} />
-              {metrics?.postsCount === 1 ? `1 publicação` : `${metrics?.postsCount} publicações`}
+              {metrics?.data.postsCount === 1 ? `1 publicação` : `${metrics?.data.postsCount} publicações`}
             </AnalyticsCard>
           </AnalyticsBox>
         ) : (
-          <h1>Não pode visualizar</h1>
+          <PostMessageBox>
+            <Scroll size={128} />
+
+            <p>
+              Que tal escrever um artigo sobre uma tecnologia legal, como: <br />
+              html, css, javascript, rect, node e muito mais?
+            </p>
+
+            <Link href="/create-publication">
+              <a>Escrever</a>
+            </Link>
+          </PostMessageBox>
         )}
       </HomeContainer>
     </DefaultLayout>

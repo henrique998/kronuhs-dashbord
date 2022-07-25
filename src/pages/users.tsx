@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
-import { PencilSimpleLine, Trash, UserPlus } from 'phosphor-react'
-import { useEffect, useState } from 'react'
+import { Trash, UserPlus } from 'phosphor-react'
+import { useState } from 'react'
+import { DeleteUserModal } from '../components/DeleteUserModal'
 
 import { DefaultLayout } from '../layouts/DefaultLayout'
 import { api } from '../services/api'
@@ -18,10 +19,31 @@ type User = {
 }
 
 export default function Users() {
-
+  const [isDeleteUserModalOpen, setIsDeleteUserModalOpen] = useState(false)
+  
   const { data: allUsers } = useQuery(['allUsers'], async () => {
     return await api.get<User[]>('/dashboard/users')
   })
+
+  const deleteUser = useMutation(async (userId: string) => {
+    await api.delete(`/dashboard/users/delete/${userId}`)
+  })
+
+  const usersCount = allUsers?.data.length >= 1 ? allUsers?.data.length : 0;
+
+  function handleOpenModal() {
+    setIsDeleteUserModalOpen(true)
+  }
+
+  function handleCloseModal() {
+    setIsDeleteUserModalOpen(false)
+  }
+
+  async function handleDeleteUser(userId: string) {
+    await deleteUser.mutateAsync(userId)
+
+    setIsDeleteUserModalOpen(false)    
+  }
 
   return (
     <DefaultLayout>
@@ -32,7 +54,7 @@ export default function Users() {
 
         <Heading>
           <h3>
-            Todos os usuários <strong>(09)</strong>
+            Todos os usuários <strong>({usersCount})</strong>
           </h3>
 
           <Link href="/add-user">
@@ -51,35 +73,40 @@ export default function Users() {
               <th>E-mail</th>
               <th>Criado em</th>
               <th></th>
-              <th></th>
             </tr>
           </thead>
 
           <tbody>
             {allUsers?.data.map(user => (
-              <tr key={user.id}>
-                <td>
-                  <img src="/leo.png" alt="léo" />
-                </td>
+              <>
+                <tr key={user.id}>
+                  <td>
+                    <img src="/leo.png" alt="léo" />
+                  </td>
 
-                <td>{user.firstName} {user.lastName}</td>
+                  <td>{user.firstName} {user.lastName}</td>
 
-                <td>{user.email}</td>
+                  <td>{user.email}</td>
 
-                <td>{String(user.createdAt)}</td>
+                  <td>{String(user.createdAt)}</td>
 
-                <td>
-                  <button className="buttonPencil" type="button">
-                    <PencilSimpleLine size={24} />
-                  </button>
-                </td>
+                  <td>
+                    <button 
+                      type="button" 
+                      className="buttonTrash"
+                      onClick={() => handleOpenModal()}
+                    >
+                      <Trash size={24} />
+                    </button>
+                  </td>
+                </tr>
 
-                <td>
-                  <button className="buttonTrash" type="button">
-                    <Trash size={24} />
-                  </button>
-                </td>
-              </tr>
+                <DeleteUserModal 
+                  isOpen={isDeleteUserModalOpen}
+                  onClose={handleCloseModal}
+                  onDelete={() => handleDeleteUser(user.id)}
+                />
+              </>
             ))}
           </tbody>
         </TableContainer>

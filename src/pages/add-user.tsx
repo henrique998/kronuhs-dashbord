@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { FormEvent, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { Button } from '../components/Button'
 import { DropImage } from '../components/DropImage'
@@ -12,6 +12,7 @@ import { api } from '../services/api'
 import { AddUserContainer, FormContainer, InputGroup } from '../styles/pages/addUser'
 import { withSSRAuth } from '../utils/withSSRAuth'
 import { useForm } from 'react-hook-form'
+import { useRouter } from 'next/router'
 
 interface Role {
   id: string
@@ -26,24 +27,52 @@ type UserData = {
 }
 
 export default function AddUser() {
-  const [photo, setPhoto] = useState<File | null>(null)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [roleId, setRoleId] = useState('')
 
-  const { register, handleSubmit } = useForm();
+  const router = useRouter()
 
   const { data: allRoles } = useQuery(['allRoles'], async () => {
     return await api.get<Role[]>('/dashboard/roles')
   })
 
-  function handleChangeImage(photo: File) {
-    setPhoto(photo)
-  }
+  const createUser = useMutation(async ({ firstName, lastName, email, roleId }: UserData) => {
+    await api.post('/dashboard/users', {
+      firstName,
+      lastName,
+      email,
+      roleId
+    })
+  })
 
-  function handleDeleteImageSelected() {
-    setPhoto(null)
-  }
+  const { isLoading } = createUser
 
-  async function handleCreateNewUser(data: UserData) {
-    console.log(data);
+  // function handleChangeImage(photo: File) {
+  //   setPhoto(photo)
+  // }
+
+  // function handleDeleteImageSelected() {
+  //   setPhoto(null)
+  // }
+
+  async function handleCreateNewUser(e: FormEvent) {
+    e.preventDefault()
+
+    await createUser.mutateAsync({
+      firstName,
+      lastName,
+      email,
+      roleId
+    })
+
+    setFirstName('')
+    setLastName('')
+    setEmail('')
+    setRoleId('')
+
+    router.push('/home')
   }
 
   return (
@@ -53,14 +82,15 @@ export default function AddUser() {
           Adicionar <span>usuário</span>
         </h1>
 
-        <FormContainer onSubmit={handleSubmit(handleCreateNewUser)}>
+        <FormContainer onSubmit={handleCreateNewUser}>
           <InputGroup>
             <label htmlFor="firstName">Primeiro Nome</label>
 
             <Input 
               type="text" 
               placeholder="Jhon.." 
-              {...register("firstName")}
+              value={firstName}
+              onChange={e => setFirstName(e.target.value)}
             />
           </InputGroup>
 
@@ -70,7 +100,8 @@ export default function AddUser() {
             <Input 
               type="text" 
               placeholder="doe.." 
-              {...register("lastName")}
+              value={lastName}
+              onChange={e => setLastName(e.target.value)}
             />
           </InputGroup>
 
@@ -80,27 +111,15 @@ export default function AddUser() {
             <Input 
               type="email" 
               placeholder="jhondoe@gmail.com"
-              {...register("email")}
+              value={email}
+              onChange={e => setEmail(e.target.value)}
             />
-          </InputGroup>
-
-          <InputGroup>
-            <label htmlFor="photo">Foto</label>
-
-            <DropImage onChangeImage={handleChangeImage} />
-
-            {photo && (
-              <FileSelected
-                name={photo.name}
-                onDelete={handleDeleteImageSelected}
-              />
-            )}
           </InputGroup>
 
           <InputGroup>
             <label htmlFor="role">Cargo</label>
 
-            <select {...register("roleId")}>
+            <select value={roleId} onChange={e => setRoleId(e.target.value)}>
               {allRoles?.data.map((role) => (
                 <option key={role.id} value={role.id}>
                   {role.name}
@@ -109,7 +128,11 @@ export default function AddUser() {
             </select>
           </InputGroup>
 
-          <Button type="submit" title="Registrar usuário" />
+          <Button 
+            type="submit" 
+            title="Registrar usuário" 
+            isLoading={isLoading}
+          />
         </FormContainer>
       </AddUserContainer>
     </DefaultLayout>
@@ -120,4 +143,10 @@ export const getServerSideProps = withSSRAuth(async ctx => {
   return {
     props: {}
   }
+}, {
+  roles: [
+    {
+      name: 'admin'
+    }
+  ]
 })

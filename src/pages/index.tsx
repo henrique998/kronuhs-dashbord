@@ -18,16 +18,21 @@ import { parseCookies } from 'nookies'
 export default function SignIn() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const { signIn } = useAuth()
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault()
 
+    setIsLoading(true)
+
     await signIn({
       email,
       password,
     })
+
+    setIsLoading(false)
 
     setEmail('')
     setPassword('')
@@ -68,7 +73,7 @@ export default function SignIn() {
               />
             </InputGroup>
 
-            <Button title="Entrar" type="submit" />
+            <Button title="Entrar" type="submit" disabled={isLoading} isLoading={isLoading} />
           </form>
 
             <Link href="/forgot-password" >

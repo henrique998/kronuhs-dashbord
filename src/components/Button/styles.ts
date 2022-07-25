@@ -16,7 +16,12 @@ export const Button = styled.button<ButtonProps>`
 
   transition: filter 0.1s;
 
-  &:hover {
+  &:not(:disabled):hover {
     filter: brightness(0.95);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `

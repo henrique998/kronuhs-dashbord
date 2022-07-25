@@ -1,8 +1,10 @@
 import {
+  ArticleMedium,
   Compass,
   Note,
   NotePencil,
   Power,
+  Scroll,
   UserPlus,
   Users,
 } from 'phosphor-react'
@@ -66,10 +68,18 @@ export function Sidebar() {
             </Link>
           </CanSeeComponent>
 
-          <Link path="/publications">
-            <Note size={24} />
+          <CanSeeComponent roles={[ { name: 'admin' } ]}>
+            <Link path="/publications">
+              <Note size={24} />
 
-            <span>Publicações</span>
+              <span>Publicações</span>
+            </Link>
+          </CanSeeComponent>
+
+          <Link path="/my-publications">
+            <Scroll size={24} />
+
+            <span>Minhas Publicações</span>
           </Link>
 
           <Link path="/create-publication">

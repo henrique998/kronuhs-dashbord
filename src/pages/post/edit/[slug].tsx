@@ -1,103 +1,89 @@
 import { FormEvent, useRef, useState } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
+import { Converter } from 'showdown'
 
-import { Button } from '../components/Button'
-import { DropImage } from '../components/DropImage'
-import { FileSelected } from '../components/FileSelected'
-import { Input } from '../components/Input'
-import { DefaultLayout } from '../layouts/DefaultLayout'
-import { api } from '../services/api'
+import { Button } from '../../../components/Button'
+import { DropImage } from '../../../components/DropImage'
+import { FileSelected } from '../../../components/FileSelected'
+import { Input } from '../../../components/Input'
+import { DefaultLayout } from '../../../layouts/DefaultLayout'
+import { api } from '../../../services/api'
 
-import { withSSRAuth } from '../utils/withSSRAuth'
+import { withSSRAuth } from '../../../utils/withSSRAuth'
 
 import { 
   CreatePublicationContainer, 
   FormContainer, 
   ButtonsWrapper, 
   InputGroup 
-} from '../styles/pages/createPublication'
+} from '../../../styles/pages/createPublication'
 
 interface Category {
-  id: string;
+  id?: string;
   name: string;
 }
 
-// interface PostData {
-//   title: string;
-//   subtitle?: string;
-//   banner: File;
-//   content: any;
-//   selectedCategory: string;
-//   isDraft: boolean;
-// }
+interface Publication {
+  title: string;
+  subtitle: string;
+  content: string;
+  category: Category
+}
 
-export default function CreatePublication() {
-  const [title, setTitle] = useState('')
-  const [subtitle, setSubtitle] = useState('')
-  const [banner, setBanner] = useState<any>('')
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [isDraft, setIsDraft] = useState(false)
+interface CreatePublicationProps {
+  publication: Publication;
+}
+
+const showDown = new Converter()
+
+export default function CreatePublication({ publication }: CreatePublicationProps) {
+  const [title, setTitle] = useState(publication.title)
+  const [subtitle, setSubtitle] = useState(publication.subtitle)
+  const [banner, setBanner] = useState<File | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState(publication.category.name)
   const editorRef = useRef<any>(null)
 
   const { data: allCategories } = useQuery(['allCategories'], async () => {
     return await api.get<Category[]>('/dashboard/categories')
   })
 
-  // const createPost = useMutation(async ({ title, subtitle, banner, content, selectedCategory, isDraft }: PostData) => {
-    
-  // })
-
   function handleChangeImage(image: File) {
     setBanner(image)
-
   }
 
   function handleDeleteImageSelected() {
     setBanner(null)
   }
 
-  async function handleCreatePublication(e: FormEvent) {
-    e.preventDefault()
+  // async function handleCreatePublication(e: FormEvent) {
+  //   e.preventDefault()
 
-    const formData = new FormData();
+  //   console.log({
+  //     title,
+  //     subtitle,
+  //     banner,
+  //     content: editorRef.current?.getContent(),
+  //     selectedCategory,
+  //     isDraft
+  //   })
 
-    formData.append('banner', banner);
-
-    await api.post('/posts', {
-      title, 
-      subtitle, 
-      banner: formData.get('banner'),
-      content: editorRef.current?.getContent(), 
-      categoryId: selectedCategory, 
-      isDraft
-    })
-
-    // console.log({
-    //   title, 
-    //   subtitle, 
-    //   banner: formData.get('banner'),
-    //   content: editorRef.current?.getContent(), 
-    //   categoryId: selectedCategory, 
-    //   isDraft
-    // });
-
-    setTitle('')
-    setSubtitle('')
-    setBanner(null)
-    setSelectedCategory('')
-    setIsDraft(false)
-    editorRef.current = null
-  }
+  //   setTitle('')
+  //   setSubtitle('')
+  //   setBanner(null)
+  //   setSelectedCategory('')
+  //   setIsDraft(false)
+  //   editorRef.current = null
+  // }
 
   return (
     <DefaultLayout>
       <CreatePublicationContainer>
         <h1>
-          Criar <span>publicação</span>
+          Editar <span>publicação</span>
         </h1>
 
-        <FormContainer onSubmit={handleCreatePublication}>
+        <FormContainer>
           <InputGroup>
             <label htmlFor="title">
               Título<span>*</span>
@@ -145,9 +131,10 @@ export default function CreatePublication() {
             <Editor
               apiKey="qhq3eshbwm8qjodb61oo1f5gp3ynzh1flldd1q18pvb0dvp6"
               onInit={(evt, editor) => (editorRef.current = editor)}
-              initialValue=""
+              initialValue={publication.content}
+              
               init={{
-                height: 500,
+                height: 668,
                 menubar: true,
                 plugins: [
                   'advlist',
@@ -189,7 +176,11 @@ export default function CreatePublication() {
               Categoria<span>*</span>
             </label>
 
-            <select id="role" onChange={e => setSelectedCategory(e.target.value)}>
+            <select 
+              id="role" 
+              value={selectedCategory} 
+              onChange={e => setSelectedCategory(e.target.value)}
+            >
               {allCategories?.data.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -201,15 +192,7 @@ export default function CreatePublication() {
           <ButtonsWrapper>
             <Button 
               type="submit" 
-              title="Criar como rascunho" 
-              isDraft
-              onClick={() => setIsDraft(true)}
-            />
-
-            <Button 
-              type="submit" 
-              title="Criar"
-              onClick={() => setIsDraft(false)}
+              title="Atualizar"
             />
           </ButtonsWrapper>
         </FormContainer>
@@ -218,8 +201,23 @@ export default function CreatePublication() {
   )
 }
 
-export const getServerSideProps = withSSRAuth(async ctx => {
+export const getServerSideProps = withSSRAuth(async ({ params }) => {
+  const { slug } = params
+
+  const publication = await api.get<Publication>(`/posts/post-by-slug/${slug}`)
+
+  const formattedPublication = {
+    title: publication.data.title,
+    subtitle: publication.data.subtitle,
+    category: {
+      name: publication.data.category.name
+    },
+    content: showDown.makeHtml(publication.data.content)
+  }
+
   return {
-    props: {}
+    props: {
+      publication: formattedPublication
+    }
   }
 })

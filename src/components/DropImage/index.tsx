@@ -28,7 +28,6 @@ export function DropImage({ onChangeImage }: DropImageProps) {
           type="file"
           id="photo"
           onChange={(e) => onChangeImage(e.target.files[0])}
-          title=""
         />
       </Wrapper>
     </DropImageContainer>

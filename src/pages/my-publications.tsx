@@ -10,6 +10,7 @@ import { withSSRAuth } from '../utils/withSSRAuth'
 import { Heading, TableContainer, PublicationsContainer, Badge } from '../styles/pages/publications'
 import { useState } from 'react'
 import { DeletePublicationModal } from '../components/DeletePublicationModal'
+import { useRouter } from 'next/router'
 
 interface Publication {
   id: string;
@@ -23,12 +24,16 @@ interface Publication {
   createdAt: Date;
 }
 
-export default function Publications() {
+export default function MyPublications() {
   const [isDeletePublicationModalOpen, setIsDeletePublicationModalOpen] = useState(false)
 
-  const { data: allPublications } = useQuery(['allPublications'], async () => {
-    return await api.get<Publication[]>('/posts')
+  const router = useRouter()
+
+  const { data: myAllPublications } = useQuery(['myAllPublications'], async () => {
+    return await api.get<Publication[]>('/posts/my-posts')
   })
+
+  const myAllPublicationsCount = myAllPublications?.data.length >= 1 ? myAllPublications?.data.length : 0;
 
   const deletePublication = useMutation(async (publicationId: string) => {
     await api.delete(`/posts/delete/${publicationId}`)
@@ -51,11 +56,11 @@ export default function Publications() {
   return (
     <DefaultLayout>
       <PublicationsContainer>
-        <h1>Publicações</h1>
+        <h1>Minhas <span>Publicações</span></h1>
 
         <Heading>
           <h3>
-            Todas as publicações <strong>({allPublications?.data.length})</strong>
+            Todas as minhas publicações <strong>({myAllPublicationsCount})</strong>
           </h3>
 
           <Link href="/create-publication">
@@ -71,7 +76,6 @@ export default function Publications() {
             <tr>
               <th>Estágio</th>
               <th>Título</th>
-              <th>Criado por</th>
               <th>Criado em</th>
               <th>Atualizado em</th>
               <th>Url</th>
@@ -81,7 +85,7 @@ export default function Publications() {
           </thead>
 
           <tbody>
-            {allPublications?.data.map(publication => (
+            {myAllPublications?.data.map(publication => (
               <>
                 <tr key={publication.id}>
                   <td>
@@ -93,14 +97,6 @@ export default function Publications() {
                   <td>
                     <span title={publication.title} className="title">
                       {publication.title}
-                    </span>
-                  </td>
-
-                  <td className="authorBox">
-                    <img src={publication.author.firstName} alt="léo" />
-
-                    <span title={publication.author.firstName} className="authorName">
-                      {publication.author.firstName}
                     </span>
                   </td>
 
@@ -156,10 +152,4 @@ export const getServerSideProps = withSSRAuth(async ctx => {
   return {
     props: {}
   }
-}, {
-  roles: [
-    {
-      name: 'admin'
-    }
-  ]
 })
