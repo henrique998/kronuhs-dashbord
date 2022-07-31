@@ -44,17 +44,31 @@ export const InputGroup = styled.div`
       color: ${(props) => props.theme['green-500']};
     }
   }
+`
 
-  select {
-    max-width: 150px;
-    height: 40px;
-    padding: 0 1rem;
-    border-radius: 8px;
-    border-color: ${(props) => props.theme['gray-400']};
-    outline: none;
+export const StatusContainer = styled.div`
+  display: grid;
+  gap: 0.5rem;
+  
+  label {
+    font-size: 1.25rem;
+    color: ${(props) => props.theme.black};
+  }
+`
 
-    &:focus {
-      border-color: ${(props) => props.theme['green-500']};
-    }
+interface SelectProps {
+  isError?: boolean;
+}
+
+export const Select = styled.select<SelectProps>`
+  max-width: 150px;
+  height: 40px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  border-color: ${(props) => props.isError ? props.theme.red : props.theme['gray-400']};
+  outline: none;
+
+  &:focus {
+    border-color: ${(props) => props.theme['green-500']};
   }
 `

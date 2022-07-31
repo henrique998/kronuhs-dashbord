@@ -17,7 +17,6 @@ export const AddUserContainer = styled.main`
     }
   }
 `
-
 export const FormContainer = styled.form`
   max-width: 720px;
   margin: 3.125rem auto;
@@ -25,6 +24,7 @@ export const FormContainer = styled.form`
   display: grid;
   gap: 1.875rem;
 `
+
 export const InputGroup = styled.div`
   display: grid;
   gap: 0.75rem;
@@ -33,17 +33,30 @@ export const InputGroup = styled.div`
     font-size: 1.25rem;
     color: ${(props) => props.theme.black};
   }
+`
 
-  select {
-    max-width: 150px;
-    height: 40px;
-    padding: 0 1rem;
-    border-radius: 8px;
-    border-color: ${(props) => props.theme['gray-400']};
-    outline: none;
+interface SelectProps {
+  isError?: boolean;
+}
 
-    &:focus {
-      border-color: ${(props) => props.theme['green-500']};
-    }
+export const Select = styled.select<SelectProps>`
+  max-width: 150px;
+  height: 40px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  border-color: ${(props) => props.isError ? props.theme.red : props.theme['gray-400']};
+  outline: none;
+
+  &:focus {
+    border-color: ${(props) => props.theme['green-500']};
   }
+`
+
+export const InputErrorMessage = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  font-size: 14px;
+  color: ${props => props.theme.red};
 `

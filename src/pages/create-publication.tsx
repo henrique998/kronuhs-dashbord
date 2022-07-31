@@ -1,42 +1,56 @@
-import { FormEvent, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import Switch from 'react-switch'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as zod from 'zod'
 
 import { Button } from '../components/Button'
 import { DropImage } from '../components/DropImage'
 import { FileSelected } from '../components/FileSelected'
 import { Input } from '../components/Input'
+
 import { DefaultLayout } from '../layouts/DefaultLayout'
 import { api } from '../services/api'
-
 import { withSSRAuth } from '../utils/withSSRAuth'
 
 import { 
   CreatePublicationContainer, 
   FormContainer, 
   ButtonsWrapper, 
-  InputGroup 
+  InputGroup, 
+  StatusContainer
 } from '../styles/pages/createPublication'
+import { useForm } from 'react-hook-form'
+import { InputErrorMessage, Select } from '../styles/pages/addUser'
+import { WarningCircle } from 'phosphor-react'
+import Router from 'next/router'
 
 interface Category {
   id: string;
   name: string;
 }
 
-// interface PostData {
-//   title: string;
-//   subtitle?: string;
-//   banner: File;
-//   content: any;
-//   selectedCategory: string;
-//   isDraft: boolean;
-// }
+interface PostData {
+  title: string;
+  subtitle?: string;
+  banner?: File | string;
+  content?: string;
+  isDraft?:boolean;
+  categoryId: string;
+}
+
+const createPublicationValidationSchema = zod.object({
+  title: zod.string().min(1, 'Campo obrigatório'),
+  categoryId: zod.string().min(1, 'Campo obrigatório'),
+})
 
 export default function CreatePublication() {
-  const [title, setTitle] = useState('')
-  const [subtitle, setSubtitle] = useState('')
   const [banner, setBanner] = useState<any>('')
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const [isBannerErr, setIsBannerErr] = useState(false)
+  const [isTitleErr, setIsTitleErr] = useState(false)
+  const [isContentErr, setIsContentErr] = useState(false)
+  const [isCategoryErr, setIsCategoryErr] = useState(false)
   const [isDraft, setIsDraft] = useState(false)
   const editorRef = useRef<any>(null)
 
@@ -44,51 +58,79 @@ export default function CreatePublication() {
     return await api.get<Category[]>('/dashboard/categories')
   })
 
-  // const createPost = useMutation(async ({ title, subtitle, banner, content, selectedCategory, isDraft }: PostData) => {
-    
-  // })
+  const config = {
+    headers: {
+      'content-type': 'multipart/form-data'
+    }
+  }
+
+  const createPost = useMutation(async ({ title, subtitle, banner, content, isDraft, categoryId }: PostData) => {
+    await api.post('/posts', {
+      title,
+      subtitle, 
+      banner,
+      content, 
+      categoryId, 
+      isDraft
+    }, config)
+  })
 
   function handleChangeImage(image: File) {
     setBanner(image)
-
+    setIsBannerErr(false)
   }
 
   function handleDeleteImageSelected() {
     setBanner(null)
   }
 
-  async function handleCreatePublication(e: FormEvent) {
-    e.preventDefault()
+  async function handleCreatePublication({ title, subtitle, categoryId }: PostData) {
+    if (!title) {
+      setIsTitleErr(true)
+    }
+    
+    if (!banner) {
+      setIsBannerErr(true)
+    } 
+
+    if (editorRef.current.getContent() === '') {
+      setIsContentErr(true)
+    }
+
+    if (!categoryId) {
+      setIsCategoryErr(true)
+    }
 
     const formData = new FormData();
 
     formData.append('banner', banner);
 
-    await api.post('/posts', {
-      title, 
-      subtitle, 
-      banner: formData.get('banner'),
-      content: editorRef.current?.getContent(), 
-      categoryId: selectedCategory, 
-      isDraft
-    })
-
-    // console.log({
-    //   title, 
-    //   subtitle, 
-    //   banner: formData.get('banner'),
-    //   content: editorRef.current?.getContent(), 
-    //   categoryId: selectedCategory, 
-    //   isDraft
-    // });
-
-    setTitle('')
-    setSubtitle('')
-    setBanner(null)
-    setSelectedCategory('')
-    setIsDraft(false)
-    editorRef.current = null
+    if (isDraft) {
+      await createPost.mutateAsync({
+        title,
+        subtitle,
+        banner: formData.get('banner'),
+        content: editorRef.current?.getContent(),
+        isDraft: true,
+        categoryId,
+      })
+  
+      Router.push('/home')
+    } else {
+      await createPost.mutateAsync({
+        title,
+        subtitle,
+        banner: formData.get('banner'),
+        content: editorRef.current?.getContent(),
+        isDraft: false,
+        categoryId,
+      })
+  
+      Router.push('/home')
+    }
   }
+
+  const { register, handleSubmit } = useForm()
 
   return (
     <DefaultLayout>
@@ -97,18 +139,26 @@ export default function CreatePublication() {
           Criar <span>publicação</span>
         </h1>
 
-        <FormContainer onSubmit={handleCreatePublication}>
+        <FormContainer onSubmit={handleSubmit(handleCreatePublication)}>
           <InputGroup>
             <label htmlFor="title">
               Título<span>*</span>
             </label>
 
             <Input 
-              id="subtitle"
-              placeholder="Iniciando no javascript com.." 
-              value={title}
-              onChange={e => setTitle(e.target.value)}
+              id="title"
+              placeholder="Iniciando no javascript com.."
+              {...register('title', { onChange: () => setIsTitleErr(false) })}
+              isError={isTitleErr}
             />
+
+            {isTitleErr && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                Campo obrigatório
+              </InputErrorMessage>
+            )}
           </InputGroup>
 
           <InputGroup>
@@ -117,8 +167,7 @@ export default function CreatePublication() {
             <Input 
               id="subtitle" 
               placeholder="como funciona o ES6.."
-              value={subtitle}
-              onChange={e => setSubtitle(e.target.value)}
+              {...register('subtitle')}
             />
           </InputGroup>
 
@@ -127,13 +176,24 @@ export default function CreatePublication() {
               Banner<span>*</span>
             </label>
 
-            <DropImage onChangeImage={handleChangeImage} />
+            <DropImage 
+              onChangeImage={handleChangeImage} 
+              isError={isBannerErr} 
+            />
 
             {banner && (
               <FileSelected
                 name={banner.name}
                 onDelete={handleDeleteImageSelected}
               />
+            )}
+
+            {isBannerErr && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                Campo obrigatório
+              </InputErrorMessage>
             )}
           </InputGroup>
 
@@ -145,7 +205,7 @@ export default function CreatePublication() {
             <Editor
               apiKey="qhq3eshbwm8qjodb61oo1f5gp3ynzh1flldd1q18pvb0dvp6"
               onInit={(evt, editor) => (editorRef.current = editor)}
-              initialValue=""
+              onFocus={() => setIsContentErr(false)}
               init={{
                 height: 500,
                 menubar: true,
@@ -182,33 +242,52 @@ export default function CreatePublication() {
                 link_context_toolbar: true,
               }}
             />
+
+            {isContentErr && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                Campo obrigatório
+              </InputErrorMessage>
+            )}
           </InputGroup>
 
           <InputGroup>
-            <label htmlFor="role">
+            <label htmlFor="categoryId">
               Categoria<span>*</span>
             </label>
 
-            <select id="role" onChange={e => setSelectedCategory(e.target.value)}>
+            <Select 
+              {...register('categoryId', { onChange: () => setIsCategoryErr(false) })} 
+              isError={isCategoryErr}
+            >
               {allCategories?.data.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
               ))}
-            </select>
+            </Select>
+
+            {isCategoryErr && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                Campo obrigatório
+              </InputErrorMessage>
+            )}
           </InputGroup>
 
           <ButtonsWrapper>
             <Button 
               type="submit" 
-              title="Criar como rascunho" 
+              title="Publicar como rascunho" 
               isDraft
               onClick={() => setIsDraft(true)}
             />
 
             <Button 
               type="submit" 
-              title="Criar"
+              title="Publicar"
               onClick={() => setIsDraft(false)}
             />
           </ButtonsWrapper>

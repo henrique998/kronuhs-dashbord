@@ -43,7 +43,9 @@ export default function Home() {
 
             <AnalyticsCard>
               <Users size={32} />
-              {metrics?.data.blogUsersCount} usuários do blog
+              {metrics?.data.blogUsersCount === 1 
+                ? '1 usuário do blog' 
+                : `${metrics?.data.blogUsersCount} usuários do blog`}
             </AnalyticsCard>
 
             <AnalyticsCard>

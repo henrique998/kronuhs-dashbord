@@ -1,9 +1,13 @@
 import styled from 'styled-components'
 
-export const InputContainer = styled.input`
+interface InputProps {
+  isError?: boolean;
+}
+
+export const Input = styled.input<InputProps>`
   height: 2.5rem;
   border-radius: 8px;
-  border: 1px solid ${(props) => props.theme['gray-400']};
+  border: 1px solid ${(props) => props.isError ? props.theme.red : props.theme['gray-400']};
   padding: 0 1rem;
   color: ${(props) => props.theme.black};
   font-size: 0.875rem;

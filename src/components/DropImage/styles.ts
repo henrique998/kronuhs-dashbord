@@ -2,12 +2,16 @@ import styled from 'styled-components'
 
 interface DropImageContainerProps {
   isDragin: boolean
+  isError?: boolean
 }
 
 export const DropImageContainer = styled.div<DropImageContainerProps>`
   border: 3px dashed
     ${(props) =>
       props.isDragin ? props.theme['green-500'] : props.theme['gray-400']};
+
+  ${props => props.isError && `border: 3px dashed ${props.theme.red};`};
+
   background-color: ${(props) => props.theme['gray-200']};
   border-radius: 8px;
 `

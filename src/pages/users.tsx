@@ -1,35 +1,47 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Trash, UserPlus } from 'phosphor-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DeleteUserModal } from '../components/DeleteUserModal'
 
 import { DefaultLayout } from '../layouts/DefaultLayout'
 import { api } from '../services/api'
 
-import { Heading, TableContainer, UsersContainer } from '../styles/pages/users'
 import { withSSRAuth } from '../utils/withSSRAuth'
+import { formatDate } from '../utils/formatDate'
+
+import { Heading, TableContainer, UsersContainer } from '../styles/pages/users'
+import { Pagination } from '../components/Pagination'
 
 type User = {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
+  roles: {
+    name: string;
+  }[];
   createdAt: Date;
+}
+
+interface IResponse {
+  totalCountOfUsers: number;
+  usersResponse: User[];
 }
 
 export default function Users() {
   const [isDeleteUserModalOpen, setIsDeleteUserModalOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1);
   
-  const { data: allUsers } = useQuery(['allUsers'], async () => {
-    return await api.get<User[]>('/dashboard/users')
-  })
+  const { data: response } = useQuery(['allUsers', currentPage], async () => {
+    return await api.get<IResponse>(`/dashboard/users?page=${currentPage}`)
+  })  
+
+  const usersCount = response?.data.totalCountOfUsers;
 
   const deleteUser = useMutation(async (userId: string) => {
     await api.delete(`/dashboard/users/delete/${userId}`)
   })
-
-  const usersCount = allUsers?.data.length >= 1 ? allUsers?.data.length : 0;
 
   function handleOpenModal() {
     setIsDeleteUserModalOpen(true)
@@ -71,13 +83,14 @@ export default function Users() {
               <th>Foto</th>
               <th>Nome</th>
               <th>E-mail</th>
+              <th>Cargo</th>
               <th>Criado em</th>
               <th></th>
             </tr>
           </thead>
 
           <tbody>
-            {allUsers?.data.map(user => (
+            {response?.data.usersResponse.map((user) => (
               <>
                 <tr key={user.id}>
                   <td>
@@ -88,7 +101,9 @@ export default function Users() {
 
                   <td>{user.email}</td>
 
-                  <td>{String(user.createdAt)}</td>
+                  <td>{user.roles[0].name}</td>
+
+                  <td>{formatDate(user.createdAt.toString())}</td>
 
                   <td>
                     <button 
@@ -109,12 +124,18 @@ export default function Users() {
               </>
             ))}
           </tbody>
+
         </TableContainer>
+        
+        <Pagination 
+          totalCountOfUsers={usersCount}
+          onPageChage={setCurrentPage}
+          currentPage={currentPage}
+        />
       </UsersContainer>
     </DefaultLayout>
   )
 }
-
 
 export const getServerSideProps = withSSRAuth(async ctx => {
   return {

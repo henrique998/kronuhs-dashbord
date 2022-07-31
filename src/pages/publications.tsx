@@ -10,6 +10,8 @@ import { withSSRAuth } from '../utils/withSSRAuth'
 import { Heading, TableContainer, PublicationsContainer, Badge } from '../styles/pages/publications'
 import { useState } from 'react'
 import { DeletePublicationModal } from '../components/DeletePublicationModal'
+import { formatDate } from '../utils/formatDate'
+import { Pagination } from '../components/Pagination'
 
 interface Publication {
   id: string;
@@ -23,12 +25,22 @@ interface Publication {
   createdAt: Date;
 }
 
-export default function Publications() {
-  const [isDeletePublicationModalOpen, setIsDeletePublicationModalOpen] = useState(false)
+interface IResponse {
+  total: number;
+  postsResponse: Publication[];
+}
 
-  const { data: allPublications } = useQuery(['allPublications'], async () => {
-    return await api.get<Publication[]>('/posts')
+export default function Publications() {
+  const [isDeletePublicationModalOpen, setIsDeletePublicationModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const { data: response } = useQuery(['allPublications', currentPage], async () => {
+    return await api.get<IResponse>(`/posts?page=${currentPage}`)
   })
+
+  const publicationsCount = response?.data.total;
+
+  const publications = response?.data.postsResponse  
 
   const deletePublication = useMutation(async (publicationId: string) => {
     await api.delete(`/posts/delete/${publicationId}`)
@@ -55,7 +67,7 @@ export default function Publications() {
 
         <Heading>
           <h3>
-            Todas as publicações <strong>({allPublications?.data.length})</strong>
+            Todas as publicações <strong>({publicationsCount})</strong>
           </h3>
 
           <Link href="/create-publication">
@@ -73,7 +85,6 @@ export default function Publications() {
               <th>Título</th>
               <th>Criado por</th>
               <th>Criado em</th>
-              <th>Atualizado em</th>
               <th>Url</th>
               <th></th>
               <th></th>
@@ -81,7 +92,7 @@ export default function Publications() {
           </thead>
 
           <tbody>
-            {allPublications?.data.map(publication => (
+            {publications?.map(publication => (
               <>
                 <tr key={publication.id}>
                   <td>
@@ -104,18 +115,16 @@ export default function Publications() {
                     </span>
                   </td>
 
-                  <td>{publication.createdAt.toString()}</td>
-
-                  <td>07/12/2021</td>
+                  <td>{formatDate(publication.createdAt.toString())}</td>
 
                   <td>
                     <a
-                      href={`http://localhost:3000/post/${publication.slug}`}
+                      href={`http://localhost:3001/post/${publication.slug}`}
                       target={'_blank'}
                       rel="noreferrer"
-                      title={`http://localhost:3000/post/${publication.slug}`}
+                      title={`http://localhost:3001/post/${publication.slug}`}
                     >
-                      {`http://localhost:3000/post/${publication.slug}`}                  
+                      {`http://localhost:3001/post/${publication.slug}`}                  
                     </a>
                   </td>
 
@@ -147,6 +156,12 @@ export default function Publications() {
             ))}
           </tbody>
         </TableContainer>
+
+        <Pagination 
+          currentPage={currentPage}
+          onPageChage={setCurrentPage}
+          totalCountOfUsers={publicationsCount}
+        />
       </PublicationsContainer>
     </DefaultLayout>
   )

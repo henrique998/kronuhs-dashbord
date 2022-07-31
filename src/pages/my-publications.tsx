@@ -11,6 +11,9 @@ import { Heading, TableContainer, PublicationsContainer, Badge } from '../styles
 import { useState } from 'react'
 import { DeletePublicationModal } from '../components/DeletePublicationModal'
 import { useRouter } from 'next/router'
+import { formatDate } from '../utils/formatDate'
+import { Pagination } from '../components/Pagination'
+import { CanSeeComponent } from '../components/CanSeeComponent'
 
 interface Publication {
   id: string;
@@ -24,16 +27,24 @@ interface Publication {
   createdAt: Date;
 }
 
+interface IResponse {
+  total: number;
+  posts: Publication[];
+}
+
 export default function MyPublications() {
   const [isDeletePublicationModalOpen, setIsDeletePublicationModalOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1);
 
   const router = useRouter()
 
-  const { data: myAllPublications } = useQuery(['myAllPublications'], async () => {
-    return await api.get<Publication[]>('/posts/my-posts')
+  const { data: response } = useQuery(['myAllPublications', currentPage], async () => {
+    return await api.get<IResponse>(`/posts/my-posts?page=${currentPage}`)
   })
 
-  const myAllPublicationsCount = myAllPublications?.data.length >= 1 ? myAllPublications?.data.length : 0;
+  const myAllPublicationsCount = response?.data.total;
+
+  const myAllPublications = response?.data.posts 
 
   const deletePublication = useMutation(async (publicationId: string) => {
     await api.delete(`/posts/delete/${publicationId}`)
@@ -77,15 +88,18 @@ export default function MyPublications() {
               <th>Estágio</th>
               <th>Título</th>
               <th>Criado em</th>
-              <th>Atualizado em</th>
               <th>Url</th>
               <th></th>
-              <th></th>
+              <CanSeeComponent
+                roles={[ { name: 'admin' } ]}
+              >
+                <th></th>
+              </CanSeeComponent>
             </tr>
           </thead>
 
           <tbody>
-            {myAllPublications?.data.map(publication => (
+            {myAllPublications?.map(publication => (
               <>
                 <tr key={publication.id}>
                   <td>
@@ -100,18 +114,16 @@ export default function MyPublications() {
                     </span>
                   </td>
 
-                  <td>{publication.createdAt.toString()}</td>
-
-                  <td>07/12/2021</td>
+                  <td>{formatDate(publication.createdAt.toString())}</td>
 
                   <td>
                     <a
-                      href={`http://localhost:3000/post/${publication.slug}`}
+                      href={`http://localhost:3001/post/${publication.slug}`}
                       target={'_blank'}
                       rel="noreferrer"
-                      title={`http://localhost:3000/post/${publication.slug}`}
+                      title={`http://localhost:3001/post/${publication.slug}`}
                     >
-                      {`http://localhost:3000/post/${publication.slug}`}                  
+                      {`http://localhost:3001/post/${publication.slug}`}                  
                     </a>
                   </td>
 
@@ -123,15 +135,18 @@ export default function MyPublications() {
                     </Link>
                   </td>
 
-                  <td>
-                    <button 
-                      className="buttonTrash" 
-                      type="button"
-                      onClick={() => handleOpenModal()}
-                    >
-                      <Trash size={24} />
-                    </button>
-                  </td>
+                  <CanSeeComponent
+                    roles={[ { name: "admin" } ]}
+                  >
+                    <td>
+                      <button 
+                        className="buttonTrash"
+                        onClick={() => handleOpenModal()}
+                      >
+                        <Trash size={24} />
+                      </button>
+                    </td>
+                  </CanSeeComponent>
                 </tr>
 
                 <DeletePublicationModal 
@@ -143,6 +158,12 @@ export default function MyPublications() {
             ))}
           </tbody>
         </TableContainer>
+
+        <Pagination 
+          onPageChage={setCurrentPage}
+          totalCountOfUsers={myAllPublicationsCount}
+          currentPage={currentPage}
+        />
       </PublicationsContainer>
     </DefaultLayout>
   )

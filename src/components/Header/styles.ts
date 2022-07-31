@@ -24,9 +24,13 @@ export const Container = styled.div`
     }
   }
 
-  img {
-    width: 2.125rem;
-    height: 2.125rem;
-    border-radius: 50%;
+  a {
+    .userAvatar {
+      border-radius: 50%;
+    }
+
+    svg {
+      color: ${(props) => props.theme['gray-400']};
+    }
   }
 `

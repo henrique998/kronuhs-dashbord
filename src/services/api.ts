@@ -1,7 +1,6 @@
 import axios, { AxiosError } from 'axios'
 import { parseCookies, setCookie } from 'nookies'
 import { signOut } from '../contexts/AuthContext'
-import { AuthTokenError } from './errors/AuthTokenErro';
 
 let cookies = parseCookies()
 let isRefreshing = false;
@@ -21,7 +20,7 @@ api.interceptors.response.use(response => {
   },
   (error: AxiosError) => {    
     if (error.response?.status === 401) {        
-      if (error.response.data?.message.code === 'token.expired') {
+      if (error.response.data.message?.code === 'token.expired') {
         cookies = parseCookies();
 
         const { '@kronuhs-dashboard:refresh_token': refreshToken } = cookies;

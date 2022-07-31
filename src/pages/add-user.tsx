@@ -1,18 +1,23 @@
-import { FormEvent, useState } from 'react'
+import { useRouter } from 'next/router'
+import { useForm } from 'react-hook-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as zod from 'zod'
+
 import { Button } from '../components/Button'
-import { DropImage } from '../components/DropImage'
-import { FileSelected } from '../components/FileSelected'
 import { Input } from '../components/Input'
 import { DefaultLayout } from '../layouts/DefaultLayout'
 
 import { api } from '../services/api'
 
-import { AddUserContainer, FormContainer, InputGroup } from '../styles/pages/addUser'
 import { withSSRAuth } from '../utils/withSSRAuth'
-import { useForm } from 'react-hook-form'
-import { useRouter } from 'next/router'
+
+import { AddUserContainer, FormContainer, InputErrorMessage, InputGroup, Select } from '../styles/pages/addUser'
+import { WarningCircle } from 'phosphor-react'
+import { DropImage } from '../components/DropImage'
+import { FileSelected } from '../components/FileSelected'
+import { useState } from 'react'
 
 interface Role {
   id: string
@@ -23,14 +28,20 @@ type UserData = {
   firstName: string;
   lastName: string;
   email: string;
+  avatar?: File | string;
   roleId: string;
 }
 
+const addUserValidationSchema = zod.object({
+  firstName: zod.string().min(1, 'Campo é obrigatório'),
+  lastName: zod.string().min(1, 'Campo é obrigatório'),
+  email: zod.string().min(1, 'Campo é obrigatório'),
+  roleId: zod.string().min(1, 'Campo é obrigatório'),
+})
+
 export default function AddUser() {
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [roleId, setRoleId] = useState('')
+  const [image, setImage] = useState<any>('')
+  const [isImageErr, setIsImageErr] = useState(false)
 
   const router = useRouter()
 
@@ -38,42 +49,60 @@ export default function AddUser() {
     return await api.get<Role[]>('/dashboard/roles')
   })
 
+  const config = {
+    headers: {
+      'content-type': 'multipart/form-data'
+    }
+  }
+
   const createUser = useMutation(async ({ firstName, lastName, email, roleId }: UserData) => {
     await api.post('/dashboard/users', {
       firstName,
       lastName,
       email,
       roleId
-    })
+    }, config)
   })
 
   const { isLoading } = createUser
 
-  // function handleChangeImage(photo: File) {
-  //   setPhoto(photo)
-  // }
+  async function handleCreateNewUser({ firstName, lastName, email, roleId }: UserData) {
+    if (!image) {
+      setIsImageErr(true)
+    }
 
-  // function handleDeleteImageSelected() {
-  //   setPhoto(null)
-  // }
+    const formData = new FormData();
 
-  async function handleCreateNewUser(e: FormEvent) {
-    e.preventDefault()
+    formData.append('avatar', image);
 
     await createUser.mutateAsync({
       firstName,
       lastName,
       email,
+      avatar: formData.get('avatar'),
       roleId
     })
 
-    setFirstName('')
-    setLastName('')
-    setEmail('')
-    setRoleId('')
-
     router.push('/home')
   }
+
+  function handleChangeImage(image: File) {
+    setImage(image)
+    setIsImageErr(false)
+  }
+
+  function handleDeleteImageSelected() {
+    setImage(null)
+  }
+
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(addUserValidationSchema),
+  })
+
+  const firstNameError = errors.firstName?.message
+  const lastNameError = errors.lastName?.message
+  const emailError = errors.email?.message
+  const roleError = errors.roleId?.message
 
   return (
     <DefaultLayout>
@@ -82,16 +111,24 @@ export default function AddUser() {
           Adicionar <span>usuário</span>
         </h1>
 
-        <FormContainer onSubmit={handleCreateNewUser}>
+        <FormContainer onSubmit={handleSubmit(handleCreateNewUser)}>
           <InputGroup>
             <label htmlFor="firstName">Primeiro Nome</label>
 
             <Input 
               type="text" 
-              placeholder="Jhon.." 
-              value={firstName}
-              onChange={e => setFirstName(e.target.value)}
+              placeholder="Jhon.."
+              {...register('firstName')}
+              isError={!!firstNameError}
             />
+
+            {firstNameError && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                {String(firstNameError)}
+              </InputErrorMessage>
+            )}
           </InputGroup>
 
           <InputGroup>
@@ -99,10 +136,18 @@ export default function AddUser() {
 
             <Input 
               type="text" 
-              placeholder="doe.." 
-              value={lastName}
-              onChange={e => setLastName(e.target.value)}
+              placeholder="doe.."
+              {...register('lastName')}
+              isError={!!lastNameError}
             />
+
+            {lastNameError && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                {String(lastNameError)}
+              </InputErrorMessage>
+            )}
           </InputGroup>
 
           <InputGroup>
@@ -111,21 +156,63 @@ export default function AddUser() {
             <Input 
               type="email" 
               placeholder="jhondoe@gmail.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              {...register('email')}
+              isError={!!emailError}
             />
+
+            {emailError && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                {String(emailError)}
+              </InputErrorMessage>
+            )}
+          </InputGroup>
+
+          <InputGroup>
+            <label>
+              Imagem<span>*</span>
+            </label>
+
+            <DropImage 
+              onChangeImage={handleChangeImage} 
+              isError={isImageErr} 
+            />
+
+            {image && (
+              <FileSelected
+                name={image.name}
+                onDelete={handleDeleteImageSelected}
+              />
+            )}
+
+            {isImageErr && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                Campo obrigatório
+              </InputErrorMessage>
+            )}
           </InputGroup>
 
           <InputGroup>
             <label htmlFor="role">Cargo</label>
 
-            <select value={roleId} onChange={e => setRoleId(e.target.value)}>
+            <Select id="role" {...register('roleId')} isError={!!roleError}>
               {allRoles?.data.map((role) => (
                 <option key={role.id} value={role.id}>
                   {role.name}
                 </option>
               ))}
-            </select>
+            </Select>
+
+            {roleError && (
+              <InputErrorMessage>
+                <WarningCircle size={16} />
+                
+                {String(roleError)}
+              </InputErrorMessage>
+            )}
           </InputGroup>
 
           <Button 

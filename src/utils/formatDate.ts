@@ -1,10 +1,10 @@
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export function formAtDate(date: Date) {
+export function formatDate(date: string) {
     const dateFormatted = format(
-        date,
-        "d 'de' LLLL, y",
+        parseISO(date),
+        "d 'de' LLLL 'de' y",
         { locale: ptBR }
     );
 

@@ -3,9 +3,10 @@ import { DropImageContainer, Wrapper } from './styles'
 
 interface DropImageProps {
   onChangeImage: (image: File) => void
+  isError?: boolean
 }
 
-export function DropImage({ onChangeImage }: DropImageProps) {
+export function DropImage({ onChangeImage, isError }: DropImageProps) {
   const [isDraging, setIsDragin] = useState(false)
 
   return (
@@ -14,6 +15,7 @@ export function DropImage({ onChangeImage }: DropImageProps) {
       onDragLeave={() => setIsDragin(false)}
       onDragEnter={() => setIsDragin(false)}
       isDragin={isDraging}
+      isError={isError}
     >
       <Wrapper>
         <img src="/image-ilustration.svg" alt="image ilustration" />
