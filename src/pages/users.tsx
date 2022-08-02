@@ -18,6 +18,7 @@ type User = {
   firstName: string;
   lastName: string;
   email: string;
+  avatarUrl: string;
   roles: {
     name: string;
   }[];
@@ -94,7 +95,7 @@ export default function Users() {
               <>
                 <tr key={user.id}>
                   <td>
-                    <img src="/leo.png" alt="léo" />
+                    <img src={user.avatarUrl} alt="léo" />
                   </td>
 
                   <td>{user.firstName} {user.lastName}</td>

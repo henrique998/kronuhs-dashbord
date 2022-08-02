@@ -24,6 +24,7 @@ export function Header() {
                 height={34}
                 objectFit="cover"
                 src={user?.avatarUrl} 
+                loader={() => user?.avatarUrl}
                 alt={`foto de ${user?.firstName}`} 
                 className="userAvatar"
               />

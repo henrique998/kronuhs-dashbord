@@ -38,7 +38,9 @@ export default function Home() {
           <AnalyticsBox>
             <AnalyticsCard>
               <Eye size={32} />
-              {metrics?.data.viewsCount} views
+              {metrics?.data.viewsCount === 1 
+                ? '1 view' 
+                : `${metrics?.data.viewsCount} views`}
             </AnalyticsCard>
 
             <AnalyticsCard>

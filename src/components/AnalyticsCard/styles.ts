@@ -8,7 +8,7 @@ export const AnalyticsCardContainer = styled.div`
 
   margin: 0 auto;
 
-  border: 1px solid ${(props) => props.theme['gray-300']};
+  border: 1px solid ${(props) => props.theme['gray-400']};
   border-radius: 8px;
   padding: 2.5rem;
   color: ${(props) => props.theme['gray-400']};

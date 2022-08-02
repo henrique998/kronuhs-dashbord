@@ -4,7 +4,7 @@ export const SidebarWrapper = styled.aside`
   width: 16rem;
   height: 100vh;
   background-color: ${(props) => props.theme.white};
-  border-right: 1px solid ${(props) => props.theme['gray-300']};
+  border-right: 1px solid ${(props) => props.theme['gray-400']};
   padding: 1rem;
 `
 

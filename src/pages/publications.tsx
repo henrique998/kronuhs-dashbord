@@ -108,7 +108,10 @@ export default function Publications() {
                   </td>
 
                   <td className="authorBox">
-                    <img src={publication.author.firstName} alt="léo" />
+                    <img 
+                      src={publication.author.avatarUrl} 
+                      alt={publication.author.firstName} 
+                    />
 
                     <span title={publication.author.firstName} className="authorName">
                       {publication.author.firstName}

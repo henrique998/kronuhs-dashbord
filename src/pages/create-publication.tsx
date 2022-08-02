@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import Switch from 'react-switch'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
 

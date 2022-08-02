@@ -1,6 +1,6 @@
 import { FormEvent, useRef, useState } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Converter } from 'showdown'
 
 import { Button } from '../../../components/Button'
@@ -16,15 +16,17 @@ import {
   CreatePublicationContainer, 
   FormContainer, 
   ButtonsWrapper, 
-  InputGroup 
+  InputGroup,
+  Select
 } from '../../../styles/pages/createPublication'
 
 interface Category {
-  id?: string;
+  id: string;
   name: string;
 }
 
 interface Publication {
+  id: string;
   title: string;
   subtitle: string;
   content: string;
@@ -35,13 +37,21 @@ interface CreatePublicationProps {
   publication: Publication;
 }
 
+type PostData = {
+  title: string;
+  subtitle?: string;
+  banner?: File | string;
+  content?: string;
+  categoryId: string;
+}
+
 const showDown = new Converter()
 
 export default function CreatePublication({ publication }: CreatePublicationProps) {
   const [title, setTitle] = useState(publication.title)
   const [subtitle, setSubtitle] = useState(publication.subtitle)
-  const [banner, setBanner] = useState<File | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState(publication.category.name)
+  const [banner, setBanner] = useState<any>('')
+  const [categoryId, setCategoryId] = useState(publication.category.id)
   const editorRef = useRef<any>(null)
 
   const { data: allCategories } = useQuery(['allCategories'], async () => {
@@ -56,25 +66,43 @@ export default function CreatePublication({ publication }: CreatePublicationProp
     setBanner(null)
   }
 
-  // async function handleCreatePublication(e: FormEvent) {
-  //   e.preventDefault()
+  const config = {
+    headers: {
+      'content-type': 'multipart/form-data'
+    }
+  }
 
-  //   console.log({
-  //     title,
-  //     subtitle,
-  //     banner,
-  //     content: editorRef.current?.getContent(),
-  //     selectedCategory,
-  //     isDraft
-  //   })
+  const updatePost = useMutation(async ({ title, subtitle, banner, content, categoryId }: PostData) => {
+    await api.put(`/posts/update/${publication.id}`, {
+      title,
+      subtitle, 
+      banner,
+      content, 
+      categoryId, 
+    }, config)
+  })
 
-  //   setTitle('')
-  //   setSubtitle('')
-  //   setBanner(null)
-  //   setSelectedCategory('')
-  //   setIsDraft(false)
-  //   editorRef.current = null
-  // }
+  async function handleUpdatePublication(e: FormEvent) {
+    e.preventDefault()
+
+    const formData = new FormData();
+
+    formData.append('banner', banner);
+
+    await updatePost.mutateAsync({
+      title,
+      subtitle,
+      banner: formData.get('banner'),
+      content: editorRef.current?.getContent(),
+      categoryId
+    })
+
+    setTitle('')
+    setSubtitle('')
+    setBanner(null)
+    setCategoryId('')
+    editorRef.current = null
+  }
 
   return (
     <DefaultLayout>
@@ -83,14 +111,14 @@ export default function CreatePublication({ publication }: CreatePublicationProp
           Editar <span>publicação</span>
         </h1>
 
-        <FormContainer>
+        <FormContainer onSubmit={handleUpdatePublication}>
           <InputGroup>
             <label htmlFor="title">
               Título<span>*</span>
             </label>
 
             <Input 
-              id="subtitle"
+              id="title"
               placeholder="Iniciando no javascript com.." 
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -172,21 +200,21 @@ export default function CreatePublication({ publication }: CreatePublicationProp
           </InputGroup>
 
           <InputGroup>
-            <label htmlFor="role">
+            <label htmlFor="category">
               Categoria<span>*</span>
             </label>
 
-            <select 
-              id="role" 
-              value={selectedCategory} 
-              onChange={e => setSelectedCategory(e.target.value)}
+            <Select 
+              id="category" 
+              value={categoryId}
+              onChange={e => setCategoryId(e.target.value)}
             >
               {allCategories?.data.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </InputGroup>
 
           <ButtonsWrapper>
@@ -207,9 +235,11 @@ export const getServerSideProps = withSSRAuth(async ({ params }) => {
   const publication = await api.get<Publication>(`/posts/post-by-slug/${slug}`)
 
   const formattedPublication = {
+    id: publication.data.id,
     title: publication.data.title,
     subtitle: publication.data.subtitle,
     category: {
+      id: publication.data.category.id,
       name: publication.data.category.name
     },
     content: showDown.makeHtml(publication.data.content)

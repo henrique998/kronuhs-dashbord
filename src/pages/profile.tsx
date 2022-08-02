@@ -75,6 +75,8 @@ export default function Profile() {
         await updateUserAvatar.mutateAsync({
             avatar: formData.get('avatar')
         })
+
+        Router.reload()
     }
     
     async function handleUpdateUserData({ firstName, lastName, email }: UserData) {  
@@ -82,7 +84,7 @@ export default function Profile() {
 
         reset()
 
-        Router.push('/home')
+        Router.reload()
     }
 
     return (
@@ -95,7 +97,7 @@ export default function Profile() {
                 </Heading>
 
                 <AvatarFormContainer onSubmit={handleUpdateUserAvatar}>
-                    <img src="/leo.png" alt={user?.firstName} className="userAvatar" />
+                    <img src={user?.avatarUrl} alt={user?.firstName} className="userAvatar" />
 
                     <input 
                         id="avatar-file" 

@@ -33,6 +33,7 @@ export const AvatarFormContainer = styled.form`
         width: 9.375rem;
         height: 9.375rem;
         border-radius: 50%;
+        object-fit: cover;
     }
 
     > label {
